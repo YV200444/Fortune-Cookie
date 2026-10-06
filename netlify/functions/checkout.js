@@ -21,11 +21,16 @@ exports.handler = async (event) => {
     if (!line_items.length) return { statusCode: 400, body: 'Panier vide' };
     const base = (site || '').replace(/\/$/, '');
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment', line_items, locale: 'fr',
-      success_url: `${base}/?paid=1`, cancel_url: `${base}/?paid=0`
+      ui_mode: 'embedded',
+      mode: 'payment',
+      line_items,
+      locale: 'fr',
+      payment_method_types: ['card', 'twint'],
+      redirect_on_completion: 'if_required',
+      return_url: `${base}/?paid=1`
     });
-    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: session.url }) };
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientSecret: session.client_secret }) };
   } catch (e) {
-    return { statusCode: 500, body: 'Erreur paiement' };
+    return { statusCode: 500, body: 'Erreur paiement: ' + (e && e.message ? e.message : '') };
   }
 };
