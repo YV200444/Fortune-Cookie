@@ -25,7 +25,6 @@ exports.handler = async (event) => {
       mode: 'payment',
       line_items,
       locale: 'fr',
-      payment_method_types: ['card', 'twint'],
       redirect_on_completion: 'if_required',
       return_url: `${base}/?paid=1`
     });
