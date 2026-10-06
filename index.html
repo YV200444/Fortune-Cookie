@@ -1189,7 +1189,7 @@ document.getElementById('crackBtn').addEventListener('click',()=>{
     .catch(fail);
 });
 /* ================= STRIPE (embedded checkout, stays on the site) ================= */
-const STRIPE_PK='pk_live_COLLE_TA_CLE_PUBLIABLE_ICI';
+const STRIPE_PK='pk_live_51UNLUDEohhc3G1PZyJ8mteOYWj0XVU07iCtfC88ON4PwBAJLTzRZSKVrjZkXzQQ36Fv1VmPg87Xa402xzB3Yr3LW00NI9YPWjd';
 let payCheckout=null;
 function loadStripe(){ return window.Stripe?Promise.resolve():new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='https://js.stripe.com/v3/'; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
 function closePay(){ if(payCheckout){ try{payCheckout.destroy();}catch(e){} payCheckout=null; } document.getElementById('pay').classList.remove('open'); document.getElementById('stripeMount').innerHTML='<p class="pay-loading">'+(lang==='fr'?'Chargement du paiement…':'Loading payment…')+'</p>'; }
