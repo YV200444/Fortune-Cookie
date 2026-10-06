@@ -1,1 +1,1 @@
-{ "name": "fortune-cookie", "private": true, "dependencies": { "stripe": "latest" } }
+{ "name": "fortune-cookie", "private": true, "dependencies": { "stripe": "latest" } }  
