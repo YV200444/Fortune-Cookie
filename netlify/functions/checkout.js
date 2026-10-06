@@ -21,7 +21,7 @@ exports.handler = async (event) => {
     if (!line_items.length) return { statusCode: 400, body: 'Panier vide (v3)' };
     const base = (site || '').replace(/\/$/, '');
     const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded',
+    ui_mode: 'embedded_page',
       mode: 'payment',
       line_items,
       locale: 'fr',
