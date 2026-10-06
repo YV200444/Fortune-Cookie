@@ -413,9 +413,11 @@ body.ordering #order{display:block;position:fixed;inset:0;z-index:45;overflow-y:
 .shop > section{position:relative;z-index:1}
 .pay{position:fixed;inset:0;z-index:49;display:none;align-items:center;justify-content:center;background:rgba(20,3,6,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);padding:16px}
 .pay.open{display:flex;animation:ovIn .25s ease both}
-.pay-card{width:100%;max-width:400px;max-height:100%;overflow-y:auto;background:#fff;color:#30313D;border-radius:16px;padding:0 22px 18px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;box-shadow:0 30px 60px rgba(0,0,0,.35);animation:cardIn .4s cubic-bezier(.2,1.1,.3,1) both}
+.pay-card{width:100%;max-width:520px;max-height:100%;overflow-y:auto;background:#fff;color:#30313D;border-radius:16px;padding:14px 14px 18px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;box-shadow:0 30px 60px rgba(0,0,0,.35);animation:cardIn .4s cubic-bezier(.2,1.1,.3,1) both}
 .pay-demo{margin:0 -22px 14px;padding:7px 12px;background:#FFF4D6;color:#8A5A00;font-size:12px;font-weight:600;text-align:center;border-radius:16px 16px 0 0}
-.pay-head{display:flex;align-items:center;gap:10px}
+.pay-head{display:flex;align-items:center;gap:10px;padding:2px 6px 10px}
+#stripeMount{min-height:320px}
+.pay-loading{text-align:center;color:#6D6E78;padding:120px 0;margin:0}
 .pay-back{width:30px;height:30px;border-radius:50%;border:0;background:#F2F3F5;font-size:16px;cursor:pointer;color:#30313D}
 .pay-logo{width:28px;height:28px;border-radius:7px;background:#B3141F;display:grid;place-items:center;font-size:15px}
 .pay-shop{font-weight:600}
@@ -566,6 +568,8 @@ footer p{margin:8px 0 0;color:#FFE9C4;font-size:15px}
   #map{max-height:calc(100svh - 350px)!important}
   .side{gap:12px}.stopcard{padding:14px 16px}.sc-top .han{font-size:30px}.cost{font-size:26px}.stat b{font-size:24px!important}
 }
+@media (min-width:861px){ #map{max-height:max(300px,calc(100svh - 480px))} .trip-grid{align-items:center} }
+@media (min-width:861px) and (max-height:1100px){ .side .stats{display:none} }
 </style>
 </head>
 <body>
@@ -762,28 +766,11 @@ footer p{margin:8px 0 0;color:#FFE9C4;font-size:15px}
 
 <div class="pay" id="pay" role="dialog" aria-modal="true" aria-label="Paiement">
   <div class="pay-card">
-    <div class="pay-demo">Aperçu du paiement · aucun débit réel</div>
     <div class="pay-head">
       <button class="pay-back" id="payBack" type="button" aria-label="Retour">←</button>
       <span class="pay-logo">🥠</span><span class="pay-shop">Fortune Cookie</span>
     </div>
-    <div class="pay-amt" id="payAmt">0,00 CHF</div>
-    <button class="apple-pay" id="applePay" type="button">Apple Pay</button>
-    <div class="pay-or"><span>Ou payer avec</span></div>
-    <div class="pay-tabs" role="tablist">
-      <button class="pay-tab" role="tab" data-m="card" type="button"><b>💳</b>Carte</button>
-      <button class="pay-tab" role="tab" data-m="twint" type="button"><b class="tw">TW</b>TWINT</button>
-    </div>
-    <div class="pay-card-f">
-      <label>E-mail<input type="email" placeholder="toi@exemple.ch" autocomplete="email"></label>
-      <label>Informations de la carte
-        <div class="pay-group"><input placeholder="1234 1234 1234 1234" inputmode="numeric"><div class="pay-row"><input placeholder="MM / AA"><input placeholder="CVC"></div></div>
-      </label>
-      <label>Pays<select><option>Suisse</option><option>France</option></select></label>
-    </div>
-    <div class="pay-twint-f"><div class="tw-box"><b class="tw big">TWINT</b><p>Tu seras redirigé vers l'app TWINT pour confirmer le paiement.</p></div></div>
-    <button class="pay-btn" id="payBtn" type="button"><span>Payer</span><i class="spin"></i><i class="check">✓</i></button>
-    <p class="pay-foot">Propulsé par <b>stripe</b> · Conditions · Confidentialité</p>
+    <div id="stripeMount"><p class="pay-loading">Chargement du paiement…</p></div>
   </div>
 </div>
 
@@ -1191,11 +1178,22 @@ document.getElementById('crackBtn').addEventListener('click',()=>{
     document.getElementById('mClose').focus(); };
   if(pay==='Cash'){ openFortune(); return; }
   try{ localStorage.setItem('fc-pending',JSON.stringify({waWeb,waApp})); }catch(e){}
-  const btn=document.getElementById('crackBtn'), lbl=btn.textContent; btn.disabled=true; btn.textContent=lang==='fr'?'Redirection vers le paiement…':'Redirecting to payment…';
-  fetch('/.netlify/functions/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty,don:donation,site:location.origin})})
-    .then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{ if(d&&d.url) location.href=d.url; else throw 0; })
-    .catch(()=>{ btn.disabled=false; btn.textContent=lbl; err.textContent=lang==='fr'?'Le paiement en ligne est momentanément indisponible. Réessaie ou choisis Cash.':'Online payment is unavailable right now. Try again or choose Cash.'; });
+  const btn=document.getElementById('crackBtn'), lbl=btn.textContent; btn.disabled=true; btn.textContent=lang==='fr'?'Ouverture du paiement…':'Opening payment…';
+  const fail=()=>{ btn.disabled=false; btn.textContent=lbl; closePay(); err.textContent=lang==='fr'?'Le paiement en ligne est momentanément indisponible. Réessaie ou choisis Cash.':'Online payment is unavailable right now. Try again or choose Cash.'; };
+  loadStripe().then(()=>fetch('/.netlify/functions/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty,don:donation,site:location.origin,method:pay})}))
+    .then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(async d=>{ if(!d||!d.clientSecret) throw 0;
+      const stripe=Stripe(STRIPE_PK); document.getElementById('pay').classList.add('open'); document.getElementById('stripeMount').innerHTML='';
+      payCheckout=await stripe.initEmbeddedCheckout({ fetchClientSecret: async()=>d.clientSecret, onComplete: ()=>{ try{localStorage.removeItem('fc-pending');}catch(e){} closePay(); btn.disabled=false; btn.textContent=lbl; showFortune(waWeb,waApp); } });
+      payCheckout.mount('#stripeMount'); btn.disabled=false; btn.textContent=lbl; })
+    .catch(fail);
 });
+/* ================= STRIPE (embedded checkout, stays on the site) ================= */
+const STRIPE_PK='pk_live_COLLE_TA_CLE_PUBLIABLE_ICI';
+let payCheckout=null;
+function loadStripe(){ return window.Stripe?Promise.resolve():new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='https://js.stripe.com/v3/'; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
+function closePay(){ if(payCheckout){ try{payCheckout.destroy();}catch(e){} payCheckout=null; } document.getElementById('pay').classList.remove('open'); document.getElementById('stripeMount').innerHTML='<p class="pay-loading">'+(lang==='fr'?'Chargement du paiement…':'Loading payment…')+'</p>'; }
+document.getElementById('payBack').addEventListener('click',closePay);
 function showFortune(waWeb,waApp){
   const ws=document.getElementById('waSend'); ws.href=waWeb; ws.dataset.app=waApp;
   const list=FORTUNES[lang]; document.getElementById('slip').textContent=list[Math.floor(Math.random()*list.length)];
@@ -1205,23 +1203,6 @@ function showFortune(waWeb,waApp){
   requestAnimationFrame(()=>requestAnimationFrame(()=>modal.classList.add('cracked')));
 }
 /* ================= PAYMENT (Stripe-style preview) ================= */
-function openPay(total,method,done){
-  const pm=document.getElementById('pay'), btn=document.getElementById('payBtn');
-  document.getElementById('payAmt').textContent=total.toFixed(2).replace('.',',')+' CHF';
-  btn.querySelector('span').textContent=(lang==='fr'?'Payer ':'Pay ')+total.toFixed(2).replace('.',',')+' CHF';
-  pm.dataset.method=method==='TWINT'?'twint':'card'; setPayTab(pm.dataset.method);
-  btn.classList.remove('loading','done'); btn.disabled=false; pm.classList.add('open'); pm._done=done;
-}
-function setPayTab(m){ const pm=document.getElementById('pay'); pm.dataset.method=m; document.querySelectorAll('.pay-tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.m===m)); }
-document.querySelectorAll('.pay-tab').forEach(t=>t.addEventListener('click',()=>setPayTab(t.dataset.m)));
-function payNow(){
-  const pm=document.getElementById('pay'), btn=document.getElementById('payBtn'); if(btn.disabled) return;
-  btn.disabled=true; btn.classList.add('loading');
-  setTimeout(()=>{ btn.classList.remove('loading'); btn.classList.add('done'); setTimeout(()=>{ pm.classList.remove('open'); if(pm._done) pm._done(); },650); },1300);
-}
-document.getElementById('payBtn').addEventListener('click',payNow);
-document.getElementById('applePay').addEventListener('click',payNow);
-document.getElementById('payBack').addEventListener('click',()=>document.getElementById('pay').classList.remove('open'));
 document.getElementById('waSend').addEventListener('click',e=>{
   const a=e.currentTarget; if(!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||!a.dataset.app) return;
   e.preventDefault(); const web=a.href; let left=false;
@@ -1251,7 +1232,7 @@ document.getElementById('heroCta').addEventListener('click',e=>{
   e.preventDefault();
   const mb=document.getElementById('mapBox'), r=mb.getBoundingClientRect(), vh=window.innerHeight;
   const tr=document.getElementById('trip').getBoundingClientRect();
-  const off= (window.innerWidth<=860||vh<=950) ? tr.top : (r.height < vh-40 ? r.top + r.height/2 - vh/2 - 45 : r.top - 40);
+  const off= tr.top;
   window.scrollTo({top:window.scrollY+off,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
 });
 function dustChars(){
@@ -1300,7 +1281,8 @@ applyLang(); setProgress(0);
   document.body.classList.remove('sealed'); document.body.classList.add('opened'); document.getElementById('top').classList.add('revealed');
   if(paid==='1'){ let pend=null; try{ pend=JSON.parse(localStorage.getItem('fc-pending')||'null'); localStorage.removeItem('fc-pending'); }catch(e){}
     document.getElementById('mTitle').textContent=lang==='fr'?'Paiement reçu, merci !':'Payment received, thank you!';
-    if(pend) setTimeout(()=>showFortune(pend.waWeb,pend.waApp),400); }
+    setTimeout(()=>{ const m=document.getElementById('menu'); window.scrollTo({top:m.getBoundingClientRect().top+scrollY,behavior:'instant'}); },50);
+    if(pend) setTimeout(()=>showFortune(pend.waWeb,pend.waApp),500); }
   else { document.body.classList.add('ordering'); document.getElementById('err').textContent=lang==='fr'?'Paiement annulé. Tu peux réessayer.':'Payment cancelled. You can try again.'; }
 })();
 
